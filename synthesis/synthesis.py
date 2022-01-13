@@ -65,7 +65,7 @@ def synthesize_image(z, G, device, translate=(0,0), rotate=0, noise_mode = "cons
 
 def synthesize_rand_image(seed, G, device):
   z = torch.from_numpy(np.random.RandomState(seed).randn(1, G.z_dim)).to(device)
-  return synthesize_image(z)
+  return synthesize_image(z, G, device)
 
 def find_smallest_bbox(bbox):
   x, y, w, h = bbox
