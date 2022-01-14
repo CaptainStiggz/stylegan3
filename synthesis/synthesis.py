@@ -186,8 +186,21 @@ def create_kaleidoscope(imgs):
   print("out.shape", out.shape, out.dtype)
   return out
 
-def synthesize_kaleidoscope(G, device, num_seeds = 4, w_frames = 20):
-  seeds = [random.randint(1, 10000) for _ in range(num_seeds)]
+def synthesize_kaleidoscope(G, device, seeds, w_frames = 20):  
   print(seeds)
   imgs = synthesize_rand_interp(seeds, G, device, w_frames)
   return create_kaleidoscope(imgs)
+
+def create_kaleidoscopes(G, device):
+  for _ in range(100):
+    try:
+      num_seeds = random.randint(2, 20)
+      w_frames = random.randint(2, 20)
+      seeds = [random.randint(1, 10000) for _ in range(num_seeds)]
+      seeds_str = ",".join(str(seed) for seed in seeds)
+      print(f'creating kaleidoscope with seeds: {num_seeds}, w_frames: {w_frames}')
+      k = synth.synthesize_kaleidoscope(G, device, num_seeds, w_frames)
+      filename = f'ns{num_seeds}-wf{w_frames}-[{seeds_str}].jpg'
+      PIL.Image.fromarray(k, 'RGB').save(f'../kaleidoscopes/{filename}')
+    except:
+      print("Failed...continuing.")
