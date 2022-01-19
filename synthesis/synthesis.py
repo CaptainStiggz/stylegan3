@@ -11,6 +11,8 @@ import preprocessing.image_utils as itools
 import cv2
 from tqdm import tqdm
 
+from typing import List, Optional, Tuple, Union
+
 def load_generator(path, device):
   print('Loading networks from "%s"...' % path)
   with dnnlib.util.open_url(path) as f:
