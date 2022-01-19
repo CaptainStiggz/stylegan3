@@ -220,7 +220,8 @@ def generate_video(dims, duration, outdir, G, device):
   # Formula for video length is (# seeds / (W * H)) * 2 = length in seconds
   w, h = dims
   num_seeds = (duration * w * h) / 2
-  seeds = [random.randint(1, 100000) for _ in range(num_seeds)]
+  print("Seed count: ", num_seeds)
+  seeds = [random.randint(1, 100000) for _ in range(int(num_seeds))]
   seeds_str = ",".join(str(seed) for seed in seeds)
   filename = f'{outdir}/{w}x{h}-[{seeds_str}].mp4'
   gen_interp_video(G, filename, seeds, device=device)
