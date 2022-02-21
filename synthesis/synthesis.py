@@ -317,10 +317,10 @@ def create_hallway(imgs):
   out[-bottom.shape[0]:, :, :] += bottom
   return out
 
-def synthesize_hallway(G, device):
+def synthesize_hallway(G, device, w_frames = 10):
   num_seeds = 2
   seeds = [random.randint(1, 10000) for _ in range(num_seeds)]
-  imgs = synthesize_rand_interp(seeds, G, device, 5)
+  imgs = synthesize_rand_interp(seeds, G, device, w_frames)
   imgs = crop_and_normalize(imgs)
   imgs = stitch(imgs)
   imgs = stack(imgs, mode='square')
