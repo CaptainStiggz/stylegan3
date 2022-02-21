@@ -103,7 +103,7 @@ def crop_to_smallest_bbox(img):
   cropped = itools.crop(img, crop)
   return cropped
 
-def synthesize_rand_interp(seeds, G, device, w_frames = 20):
+def synthesize_rand_interp(seeds, G, device, w_frames = 20, wrap = False):
   print("interpolating: ", seeds)
   num_keyframes = len(seeds) // 1
   wraps = 1
@@ -144,6 +144,8 @@ def synthesize_rand_interp(seeds, G, device, w_frames = 20):
     img = img[0].cpu().numpy() # PIL.Image.fromarray(img[0].cpu().numpy(), 'RGB')
     imgs.append(img)
   
+  if not wrap:
+    imgs = imgs[:w_frames]
   return imgs
 
 def show_imgs(imgs):
@@ -156,13 +158,12 @@ def show_imgs(imgs):
     ax.imshow(img)
   plt.show()
 
-def create_kaleidoscope(imgs):
+def crop_and_normalize(imgs):
   # crop to bbox
   cropped_imgs = []
   for img in imgs:
     cropped = crop_to_smallest_bbox(img)
     cropped_imgs.append(cropped)
-  # normalize size
   size = None
   for img in cropped_imgs:
     if size is None or img.shape[0] < size:
@@ -172,6 +173,11 @@ def create_kaleidoscope(imgs):
     pil = PIL.Image.fromarray(img, 'RGB')
     resized = pil.resize((size, size), resample=PIL.Image.BICUBIC)
     resized_imgs.append(np.array(resized))
+  return resized_imgs
+  
+
+def create_kaleidoscope(imgs):
+  resized_imgs = crop_and_normalize(imgs)
   
   count = len(imgs) 
   dims = count * 2 - 1
@@ -227,6 +233,102 @@ def generate_video(dims, duration, outdir, G, device):
   filename = f'{outdir}/{w}x{h}-[{seeds_str}].mp4'
   gen_interp_video(G, filename, seeds, device=device)
 
+def generate_videos(count, outdir, G, device, size = (1, 1), duration = 6):
+  for _ in range(count):
+    generate_video(size, duration, outdir, G, device)
+
+# hallway stuff
+#----------------------------------------------------------------------------
+
+def stitch(imgs, mode='horizontal'):
+  height, width, _ = imgs[0].shape
+  shape = (height, width * len(imgs), 3)
+  if mode == 'vertical':
+    shape = (height * len(imgs), width, 3)
+  out = np.zeros(shape, dtype='uint8')
+  for i in range(len(imgs)):
+    if mode == 'vertical':
+      s = i * height
+      out[s:s+height, :, :] = imgs[i]
+    else:
+      s = i * width
+      out[:, s:s+width, :] = imgs[i]
+  return out
+
+def stack(img, mode='n', n=10):
+  height, width, _ = img.shape
+  if mode == 'square':
+    n = width // height
+  out = np.zeros((n*height, width, 3), dtype='uint8')
+  for i in range(n):
+    h = i*height
+    out[h:h+height, :, :] = img
+  return out
+
+def transform_perspective(img, stride = 1, dw = 0.5, dh = 0.5):
+  print("img.shape", img.shape, img.dtype)
+  height, width, _ = img.shape
+  # theta = theta * math.pi / 180 
+  if dh >= 1 or dh <= 0:
+    raise "dh parameter must be between 0 - 1, not inclusive"
+  
+  vw = width * dw
+  vh = height * dh
+  pil = PIL.Image.fromarray(img, 'RGB')
+  img = np.array(pil.resize((round(vw), height), resample=PIL.Image.BICUBIC))
+  print("skewed.shape", img.shape)
+  _h, _w, _ = img.shape
+  
+  out = np.zeros(img.shape, dtype='uint8')
+  for i in range(0, _w, stride):
+    r = img[:, i:i+stride, :] # get the slice
+    # h = height - 2 * width * math.sin(theta) * i
+    h = height - (i / (_w - 1)) * (height - vh)
+    # h = height - math.tan(theta) * i # perspective height of the slice
+    pil = PIL.Image.fromarray(r, 'RGB') # resize
+    r = np.array(pil.resize((r.shape[1], round(h)), resample=PIL.Image.BICUBIC))
+    
+    # pad the slice to get the same height as before
+    diff = (height - r.shape[0])
+    pad = diff // 2
+    xtra = 0 if not diff % 2 else 1
+    npad = ((pad, pad+xtra), (0, 0), (0, 0))
+    b = np.pad(r, pad_width=npad, mode='constant', constant_values=0)
+      
+    # apply to the new shape
+    out[:, i:i+stride, :] = b
+  
+  print("out shape", out.shape, out.dtype)
+  return out
+
+def create_hallway(imgs):
+  left = transform_perspective(imgs, dw = 0.25, dh = 0.5)
+  right = np.copy(left[...,::-1,:])
+  bottom = np.rot90(left)
+  top = np.rot90(right)
+  print("left.shape", left.shape)
+  print("right.shape", right.shape)
+  print("bottom.shape", bottom.shape)
+  print("top.shape", top.shape)
+  out = np.zeros((left.shape[0], bottom.shape[1], 3), dtype='uint8')
+  out[:, :left.shape[1], :] += left
+  out[:, -right.shape[1]:, :] += right
+  out[:top.shape[0], :, :] += top
+  out[-bottom.shape[0]:, :, :] += bottom
+  return out
+
+def synthesize_hallway(G, device):
+  num_seeds = 2
+  seeds = [random.randint(1, 10000) for _ in range(num_seeds)]
+  imgs = synthesize_rand_interp(seeds, G, device, 5)
+  imgs = crop_and_normalize(imgs)
+  imgs = stitch(imgs)
+  imgs = stack(imgs, mode='square')
+  hallway = create_hallway(imgs)
+  return hallway
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 # COPIED FROM gen_video.py
 
