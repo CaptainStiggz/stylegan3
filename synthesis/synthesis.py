@@ -301,8 +301,8 @@ def transform_perspective(img, stride = 1, dw = 0.5, dh = 0.5):
   print("out shape", out.shape, out.dtype)
   return out
 
-def create_hallway(imgs):
-  left = transform_perspective(imgs, dw = 0.25, dh = 0.5)
+def create_hallway(imgs, dw = 0.25, dh = 0.25):
+  left = transform_perspective(imgs, dw=dw, dh=dh)
   right = np.copy(left[...,::-1,:])
   bottom = np.rot90(left)
   top = np.rot90(right)
@@ -317,14 +317,18 @@ def create_hallway(imgs):
   out[-bottom.shape[0]:, :, :] += bottom
   return out
 
-def synthesize_hallway(G, device, w_frames = 10):
+def synthesize_hallway(G, device, w_frames = 10, k = 0.25):
   num_seeds = 2
   seeds = [random.randint(1, 10000) for _ in range(num_seeds)]
   imgs = synthesize_rand_interp(seeds, G, device, w_frames)
   imgs = crop_and_normalize(imgs)
   imgs = stitch(imgs)
-  imgs = stack(imgs, mode='square')
-  hallway = create_hallway(imgs)
+  stacked = stack(imgs, mode='square')
+  h, w, _ = stacked.shape
+  l = math.sqrt(k * (h**2))
+  dw = ((h - l) / 2) / w
+  dh = l / h
+  hallway = create_hallway(stacked, dw=dw, dh=dh)
   return hallway
 
 #----------------------------------------------------------------------------
