@@ -331,8 +331,8 @@ def synthesize_hallway(G, device, seeds, w_frames = 10, k = 0.25):
 
 def generate_hallways(count, outdir, G, device):
   for _ in range(count):
-    k = 0.02 + random() * 0.15
-    frames = 10 + math.round(random() * 10)
+    k = 0.01 + random.random() * 0.25
+    frames = 10 + math.round(random.random() * 10)
     seeds = [random.randint(1, 10000) for _ in range(2)]
     seeds_str = ",".join(str(seed) for seed in seeds)
     filename = f'hallway-k{k}-wf{frames}-[{seeds_str}].jpg'
