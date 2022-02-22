@@ -317,9 +317,7 @@ def create_hallway(imgs, dw = 0.25, dh = 0.25):
   out[-bottom.shape[0]:, :, :] += bottom
   return out
 
-def synthesize_hallway(G, device, w_frames = 10, k = 0.25):
-  num_seeds = 2
-  seeds = [random.randint(1, 10000) for _ in range(num_seeds)]
+def synthesize_hallway(G, device, seeds, w_frames = 10, k = 0.25):
   imgs = synthesize_rand_interp(seeds, G, device, w_frames)
   imgs = crop_and_normalize(imgs)
   imgs = stitch(imgs)
@@ -330,6 +328,16 @@ def synthesize_hallway(G, device, w_frames = 10, k = 0.25):
   dh = l / h
   hallway = create_hallway(stacked, dw=dw, dh=dh)
   return hallway
+
+def generate_hallways(count, outdir, G, device):
+  for _ in range(count):
+    k = 0.02 + random() * 0.15
+    frames = 10 + math.round(random() * 10)
+    seeds = [random.randint(1, 10000) for _ in range(2)]
+    seeds_str = ",".join(str(seed) for seed in seeds)
+    filename = f'hallway-k{k}-wf{frames}-[{seeds_str}].jpg'
+    img = synthesize_hallway(G, device, w_frames=frames, k=k)
+    PIL.Image.fromarray(img, 'RGB').save(f'{outdir}/{filename}')
 
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
