@@ -315,6 +315,7 @@ def create_hallway(imgs, dw = 0.25, dh = 0.25):
   out[:, -right.shape[1]:, :] += right
   out[:top.shape[0], :, :] += top
   out[-bottom.shape[0]:, :, :] += bottom
+  out = np.where(out.any(-1,keepdims=True),out,255) # black -> white
   return out
 
 def synthesize_hallway(G, device, seeds, w_frames = 10, k = 0.25):
