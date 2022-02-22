@@ -336,7 +336,7 @@ def generate_hallways(count, outdir, G, device):
     seeds = [random.randint(1, 10000) for _ in range(2)]
     seeds_str = ",".join(str(seed) for seed in seeds)
     filename = f'hallway-k{k}-wf{frames}-[{seeds_str}].jpg'
-    img = synthesize_hallway(G, device, w_frames=frames, k=k)
+    img = synthesize_hallway(G, device, seeds, w_frames=frames, k=k)
     PIL.Image.fromarray(img, 'RGB').save(f'{outdir}/{filename}')
 
 #----------------------------------------------------------------------------
