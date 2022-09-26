@@ -10,6 +10,9 @@ import random
 import preprocessing.image_utils as itools
 import imageio
 import cv2
+import os
+import boto3
+
 from tqdm import tqdm
 
 from typing import List, Optional, Tuple, Union
@@ -218,24 +221,50 @@ def generate_samples(count, outdir, G, device):
   seeds = [random.randint(1, 100000) for _ in range(count)]
   count = 0
   for seed in seeds:
-    img = synth.synthesize_rand_image(seed, G, device)
+    img = synthesize_rand_image(seed, G, device)
     filename = f'sample-{seed}.jpg'
     PIL.Image.fromarray(img, 'RGB').save(f'{outdir}/{filename}')
     count += 1
 
-def generate_video(dims, duration, outdir, G, device):
-  # Formula for video length is (# seeds / (W * H)) * 2 = length in seconds
+def generate_video(dims, duration, outdir, G, device, upload=False):
+  # Formula for video length is (# seeds / (W * H)) * 3 = length in seconds
   w, h = dims
   num_seeds = (duration * w * h) / 2
   print("Seed count: ", num_seeds)
-  seeds = [random.randint(1, 100000) for _ in range(int(num_seeds))]
+  seeds = [random.randint(1, 1000000) for _ in range(int(num_seeds))]
   seeds_str = ",".join(str(seed) for seed in seeds)
   filename = f'{outdir}/{w}x{h}-[{seeds_str}].mp4'
   gen_interp_video(G, filename, seeds, device=device)
+  if upload:
+    upload_file(filename, '')
 
-def generate_videos(count, outdir, G, device, size = (1, 1), duration = 6):
+def generate_videos(count, outdir, G, device, size = (1, 1), duration = 6, upload=False):
   for _ in range(count):
-    generate_video(size, duration, outdir, G, device)
+    generate_video(size, duration, outdir, G, device, upload)
+
+# TODO: put this in a different place
+
+def upload_file(file_name, bucket, object_name=None):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = os.path.basename(file_name)
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.upload_file(file_name, bucket, object_name)
+    except ClientError as e:
+        print("upload error", e)
+        return False
+    return True
 
 # hallway stuff
 #----------------------------------------------------------------------------
