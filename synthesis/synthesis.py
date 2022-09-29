@@ -565,12 +565,19 @@ def parse_tuple(s: Union[str, Tuple[int, int]]) -> Tuple[int, int]:
 # TODO: copied from petals_process_v1
 
 
-def avg_edge_pixels_above_threshold(img, threshold=250):
+def avg_edge_pixels_above_threshold(img, threshold=250, width=5):
     r = img[:, :, 0].astype("float")
     g = img[:, :, 1].astype("float")
     b = img[:, :, 2].astype("float")
     arr = (r + g + b) / 3
-    edges = np.concatenate([arr[0, :-1], arr[:-1, -1], arr[-1, ::-1], arr[-2:0:-1, 0]])
+    edges = np.concatenate(
+        [
+            arr[0, :-width],
+            arr[:-width, -width],
+            arr[-width, ::-width],
+            arr[-(width + 1) : 0 : -width, 0],
+        ]
+    )
     avg_edge = np.around(np.average(edges))
     print(f"Average edge pixels: {avg_edge}")
     if avg_edge < threshold:
