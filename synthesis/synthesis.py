@@ -12,6 +12,7 @@ import imageio
 import cv2
 import os
 import boto3
+import time
 
 from tqdm import tqdm
 
@@ -231,10 +232,11 @@ def generate_video(dims, duration, outdir, G, device, upload=False):
   w, h = dims
   num_seeds = (duration * w * h) / 2
   print("Seed count: ", num_seeds)
-  seeds = [random.randint(1, 1000000) for _ in range(int(num_seeds))]
+  seeds = [random.randint(1, 1000000000) for _ in range(int(num_seeds))]
   seeds_str = ",".join(str(seed) for seed in seeds)
-  filename = f'{outdir}/{w}x{h}-[{seeds_str}].mp4'
-  gen_interp_video(G, filename, seeds, device=device)
+  name = time.time()
+  filename = f'{outdir}/{w}x{h}-{name}.mp4'
+  gen_interp_video(G, filename, seeds, device=device, grid_dims=dims)
   if upload:
     upload_file(filename, '')
 
