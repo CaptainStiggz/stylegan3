@@ -253,7 +253,9 @@ def generate_samples(count, outdir, G, device):
         count += 1
 
 
-def generate_video(dims, duration, outdir, G, device, upload=False):
+def generate_video(
+    dims, duration, outdir, G, device, upload=False, evaluate_seeds=True
+):
     # Formula for video length is (# seeds / (W * H)) * 3 = length in seconds
     w, h = dims
     num_seeds = (duration * w * h) / 2
@@ -262,7 +264,8 @@ def generate_video(dims, duration, outdir, G, device, upload=False):
     seeds_str = ",".join(str(seed) for seed in seeds)
     name = time.time()
     filename = f"{outdir}/{w}x{h}-{name}.mp4"
-    seeds = fix_seeds(seeds, G, device)
+    if evaluate_seeds:
+        seeds = fix_seeds(seeds, G, device)
     gen_interp_video(G, filename, seeds, device=device, grid_dims=dims)
     if upload:
         upload_file(filename, "")
@@ -569,7 +572,8 @@ def avg_edge_pixels_above_threshold(img, threshold=250):
     arr = (r + g + b) / 3
     edges = np.concatenate([arr[0, :-1], arr[:-1, -1], arr[-1, ::-1], arr[-2:0:-1, 0]])
     avg_edge = np.around(np.average(edges))
+    print(f"Average edge pixels: {avg_edge}")
     if avg_edge < threshold:
-        print(f"Average edge pixels below threshold: {avg_edge}")
+        print(f"Average edge pixels below threshold: {avg_edge}!")
         return False
     return True
