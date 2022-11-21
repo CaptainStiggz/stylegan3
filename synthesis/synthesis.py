@@ -254,11 +254,14 @@ def generate_samples(count, outdir, G, device):
 
 
 def generate_video(
-    dims, duration, outdir, G, device, upload=False, evaluate_seeds=True
+    dims, outdir, G, device, upload=False, evaluate_seeds=True, duration = 30, n_keyframes=None
 ):
     # Formula for video length is (# seeds / (W * H)) * 3 = length in seconds
     w, h = dims
+    # todo: pretty sure this formula is wrong
     num_seeds = (duration * w * h) / 2
+    if n_keyframes is not None:
+        num_seeds = w * h * n_keyframes
     print("Seed count: ", num_seeds)
     seeds = [get_seed() for _ in range(int(num_seeds))]
     seeds_str = ",".join(str(seed) for seed in seeds)
@@ -271,9 +274,9 @@ def generate_video(
         upload_file(filename, "")
 
 
-def generate_videos(count, outdir, G, device, size=(1, 1), duration=6, upload=False):
+def generate_videos(count, outdir, G, device, size=(1, 1), duration=6, n_keyframes=None,upload=False):
     for _ in range(count):
-        generate_video(size, duration, outdir, G, device, upload)
+        generate_video(size, outdir, G, device, upload, duration=duration, n_keyframes=n_keyframes)
 
 
 # fix seeds by removing any "funky" images with bad edges
